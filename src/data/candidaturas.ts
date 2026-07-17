@@ -25,4 +25,9 @@ export const CANDIDATURAS: Record<string, Candidatura> = {
     rol: "Data Engineer",
     nota: "Vista de ejemplo — así llega tu equipo al portfolio.",
   },
+  "capgemini-2026": {
+    empresa: "Capgemini",
+    persona: "tech",
+    rol: "Data Engineer",
+  },
 };
