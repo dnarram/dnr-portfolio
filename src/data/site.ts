@@ -14,8 +14,6 @@ export const SITE = {
   linkedin: "https://www.linkedin.com/in/davidnaranjoramirez", 
   location: "Málaga/Madrid · España",
   availability: "Disponible · Málaga / remoto",
-  /** Poner a true cuando SimpleClaro.png y SimpleOscuro.png estén en /public/brand */
-  brandAssetsReady: true,
 } as const;
 
 /**

@@ -11,35 +11,20 @@ import { SITE } from "@/data/site";
    globals.css (Manual de Identidad v2). Aquí no hay HEX.
    ============================================================ */
 
-/* ---- Logo ----
-   Con los PNG oficiales en /public/brand (SITE.brandAssetsReady=true):
-   SimpleClaro en modo claro, SimpleOscuro en modo oscuro (Manual §8).
-   Mientras tanto, wordmark provisional: D y R en color estructura,
-   N como línea de tendencia con nodos en el acento (plana y mate). */
+/* ---- Logo del header ----
+   Banner Hashnode oficial (logo DNR + nombre + rol) en una pieza
+   horizontal 4:1. Claro sobre fondo claro, Oscuro sobre fondo oscuro
+   (Manual §8: nunca cruzar acabado y fondo). */
 export function LogoMark({ theme }: { theme: "light" | "dark" }) {
-  if (SITE.brandAssetsReady) {
-    const src = theme === "dark" ? "/brand/SimpleOscuro.png" : "/brand/SimpleClaro.png";
-    return <img className="logo-img" src={src} alt={`Logo ${SITE.shortName}`} />;
-  }
+  const src = theme === "dark" ? "/brand/DNR_Hashnode_Oscuro_1000x250.png" : "/brand/DNR_Hashnode_Claro_1000x250.png";
   return (
-    <span className="logo" aria-label={SITE.shortName}>
-      D
-      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
-        <polyline
-          points="7,25 7,9 25,25 25,7"
-          fill="none"
-          stroke="var(--accent)"
-          strokeWidth="3.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <circle cx="7" cy="9" r="2.6" fill="var(--accent)" />
-        <circle cx="25" cy="7" r="3" fill="var(--accent)" />
-        <circle cx="7" cy="25" r="2.3" fill="var(--heading)" />
-        <circle cx="25" cy="25" r="2.3" fill="var(--heading)" />
-      </svg>
-      R
-    </span>
+    <img
+      className="logo-banner"
+      src={src}
+      width={1000}
+      height={250}
+      alt={`${SITE.name} — ${SITE.role}`}
+    />
   );
 }
 
