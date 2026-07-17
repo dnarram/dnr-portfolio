@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
   if (!llmEnabled) {
     const reply = matchFaq(lastUserMsg);
     // Aun sin IA, avisamos si alguien pega una oferta: no queremos perderla.
-    void notifyTelegram({ persona, empresa: empresaStr, rol: rolStr, context, userMsg: lastUserMsg, mode: "faq" });
+    await notifyTelegram({ persona, empresa: empresaStr, rol: rolStr, context, userMsg: lastUserMsg, mode: "faq" });
     return NextResponse.json({ reply, mode: "faq" });
   }
 
@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    void notifyTelegram({ persona, empresa: empresaStr, rol: rolStr, context, userMsg: lastUserMsg, mode: "llm" });
+    await notifyTelegram({ persona, empresa: empresaStr, rol: rolStr, context, userMsg: lastUserMsg, mode: "llm" });
     return NextResponse.json({ reply: reply || "No he recibido respuesta. Inténtalo de nuevo.", mode: "llm" });
   } catch (error) {
     console.error("Chat route error:", error);
