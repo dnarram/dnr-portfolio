@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <!-- OG image · Marca DNR v2 (modo oscuro, secc. 4). Fondo #0F141C (nunca #000). -->
+  <defs>
+    <style>
+      .h  { font-family: 'Inter', system-ui, sans-serif; font-weight: 800; fill: #E2E8F0; }
+      .b  { font-family: 'Inter', system-ui, sans-serif; font-weight: 500; fill: #CBD5E1; }
+      .m  { font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 600; fill: #E65F19; letter-spacing: 2px; }
+      .s  { font-family: 'Inter', system-ui, sans-serif; font-weight: 600; fill: #94A3B8; }
+    </style>
+  </defs>
+  <rect width="1200" height="630" fill="#0F141C"/>
+  <rect x="0" y="0" width="10" height="630" fill="#E65F19"/>
+  <polyline points="80,470 250,440 420,455 590,395 760,415 940,340 1130,368"
+            fill="none" stroke="#2D3748" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="250" cy="440" r="7" fill="#94A3B8"/>
+  <circle cx="590" cy="395" r="9" fill="#E65F19"/>
+  <circle cx="940" cy="340" r="9" fill="#E65F19"/>
+  <circle cx="420" cy="455" r="6" fill="#94A3B8"/>
+  <circle cx="760" cy="415" r="6" fill="#94A3B8"/>
+  <circle cx="1130" cy="368" r="7" fill="#94A3B8"/>
+  <g transform="translate(90,110)">
+    <text class="h" x="0" y="86" font-size="112">D</text>
+    <g transform="translate(96,4)">
+      <polyline points="10,92 10,20 68,92 68,12" fill="none" stroke="#E65F19"
+                stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="10" cy="20" r="8.5" fill="#E65F19"/>
+      <circle cx="68" cy="12" r="10" fill="#E65F19"/>
+      <circle cx="10" cy="92" r="7" fill="#E2E8F0"/>
+      <circle cx="68" cy="92" r="7" fill="#E2E8F0"/>
+    </g>
+    <text class="h" x="188" y="86" font-size="112">R</text>
+  </g>
+  <text class="m" x="92" y="250" font-size="20">PORTFOLIO ADAPTATIVO</text>
+  <text class="h" x="90" y="322" font-size="66">David Naranjo Ramírez</text>
+  <text class="b" x="92" y="374" font-size="30">Data Science · Desarrollo Full-Stack</text>
+  <text class="s" x="92" y="560" font-size="24">El portfolio que se recompila según quién lo visita.</text>
+</svg>
