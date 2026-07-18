@@ -63,12 +63,17 @@ export function TrendLine() {
 export function Gate({ onSelect }: { onSelect: (id: PersonaId) => void }) {
   return (
     <div className="gate wrap fadein">
-      <div className="eyebrow">portfolio adaptativo · v1.0</div>
-      <h1>{"David Naranjo\nRamírez"}</h1>
-      <p className="sub">
-        Este portfolio no es estático: se recompila según quién lo visita. Dime qué te trae por aquí y te
-        enseño exactamente lo que necesitas evaluar.
-      </p>
+      <div className="gate-head">
+        <div className="gate-intro">
+          <div className="eyebrow">portfolio adaptativo · v1.0</div>
+          <h1>{"David Naranjo\nRamírez"}</h1>
+          <p className="sub">
+            Este portfolio no es estático: se recompila según quién lo visita. Dime qué te trae por aquí y te
+            enseño exactamente lo que necesitas evaluar.
+          </p>
+        </div>
+        <img className="gate-avatar" src="/brand/avatar.png" width={440} height={440} alt="David Naranjo Ramírez" />
+      </div>
       <div className="gate-grid">
         {PERSONA_LIST.map((id) => {
           const p = PERSONAS[id];
