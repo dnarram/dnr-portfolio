@@ -45,6 +45,7 @@ export default function ChatConcierge({
   // interés (pega una oferta o pregunta cómo contactar). El email va DIRECTO
   // a David vía /api/contact, nunca al proveedor de IA.
   const [showContact, setShowContact] = useState(false);
+  const [contactDismissed, setContactDismissed] = useState(false);
   const [contactEmail, setContactEmail] = useState("");
   const [contactNote, setContactNote] = useState("");
   const [contactState, setContactState] = useState<"idle" | "sending" | "sent" | "error">("idle");
@@ -138,7 +139,7 @@ export default function ChatConcierge({
   // Señales de interés: una oferta pegada (texto largo) o preguntar por
   // contacto/contratación despliega el campo de contacto de forma natural.
   useEffect(() => {
-    if (showContact) return;
+    if (showContact || contactDismissed) return;
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
     if (!lastUser) return;
     const t = lastUser.content.toLowerCase();
@@ -146,7 +147,7 @@ export default function ChatConcierge({
       lastUser.content.length > 400 ||
       /contact|contrat|correo|email|e-mail|escrib|hablar con david|llamar|entrevista/.test(t);
     if (interesado) setShowContact(true);
-  }, [messages, showContact]);
+  }, [messages, showContact, contactDismissed]);
 
   const sendContact = async () => {
     const email = contactEmail.trim();
@@ -215,7 +216,19 @@ export default function ChatConcierge({
             <p className="contact-ok">✓ Enviado. David recibirá tu email y te responderá.</p>
           ) : (
             <>
-              <p className="contact-lead">¿Quieres que David te escriba? Déjale tu email y te responde él directamente.</p>
+              <div className="contact-top">
+                <p className="contact-lead">¿Quieres que David te escriba? Déjale tu email y te responde él directamente.</p>
+                <button
+                  className="contact-dismiss"
+                  onClick={() => {
+                    setShowContact(false);
+                    setContactDismissed(true);
+                  }}
+                  aria-label="Cerrar campo de contacto"
+                >
+                  ×
+                </button>
+              </div>
               <input
                 className="contact-input"
                 type="email"
