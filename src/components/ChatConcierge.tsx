@@ -9,6 +9,10 @@ interface ChatMessage {
   content: string;
 }
 
+// Umbral de aviso por entrada larguísima (algo por debajo del límite del
+// servidor, 8000). Una oferta normal ronda los 2000-4000 caracteres.
+const MAX_INPUT_CHARS = 7500;
+
 /**
  * Concierge del portfolio. Habla con /api/chat, que decide el modo:
  *  - "faq": matcher determinista local (coste 0 €)
@@ -46,6 +50,24 @@ export default function ChatConcierge({
   const send = async (text?: string) => {
     const content = (text ?? input).trim();
     if (!content || loading) return;
+
+    // Entrada larguísima: en vez de truncar en silencio (perdiendo info) o
+    // gastar una llamada, pedimos al visitante que pegue solo lo esencial.
+    // El límite del servidor es 8000; avisamos algo antes para dar margen.
+    if (content.length > MAX_INPUT_CHARS) {
+      setInput("");
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content },
+        {
+          role: "assistant",
+          content:
+            "Eso es bastante largo y podría perder detalle si lo proceso entero. Pégame solo la sección de requisitos y responsabilidades de la oferta y te doy el encaje de David punto por punto.",
+        },
+      ]);
+      return;
+    }
+
     setInput("");
     // Descartamos errores y, si la última pregunta quedó sin respuesta del
     // asistente (por un fallo previo), también esa pregunta huérfana: así el
