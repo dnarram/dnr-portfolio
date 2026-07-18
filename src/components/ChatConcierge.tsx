@@ -41,6 +41,13 @@ export default function ChatConcierge({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"faq" | "llm" | null>(null);
+  // Campo de contacto opt-in: se despliega solo cuando el visitante muestra
+  // interés (pega una oferta o pregunta cómo contactar). El email va DIRECTO
+  // a David vía /api/contact, nunca al proveedor de IA.
+  const [showContact, setShowContact] = useState(false);
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactNote, setContactNote] = useState("");
+  const [contactState, setContactState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -128,6 +135,50 @@ export default function ChatConcierge({
     }
   };
 
+  // Señales de interés: una oferta pegada (texto largo) o preguntar por
+  // contacto/contratación despliega el campo de contacto de forma natural.
+  useEffect(() => {
+    if (showContact) return;
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    if (!lastUser) return;
+    const t = lastUser.content.toLowerCase();
+    const interesado =
+      lastUser.content.length > 400 ||
+      /contact|contrat|correo|email|e-mail|escrib|hablar con david|llamar|entrevista/.test(t);
+    if (interesado) setShowContact(true);
+  }, [messages, showContact]);
+
+  const sendContact = async () => {
+    const email = contactEmail.trim();
+    if (!email || contactState === "sending") return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setContactState("error");
+      return;
+    }
+    setContactState("sending");
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          note: contactNote.trim(),
+          persona: persona.id,
+          empresa,
+          rol,
+          transcript: messages
+            .filter((m) => m.role === "user" || m.role === "assistant")
+            .map(({ role, content }) => ({ role, content })),
+        }),
+      });
+      if (!res.ok) throw new Error("bad status");
+      setContactState("sent");
+      track("contact_submitted", { persona: persona.id });
+    } catch {
+      setContactState("error");
+    }
+  };
+
   return (
     <div className="chat-panel" role="dialog" aria-label="Asistente del portfolio">
       <div className="chat-head">
@@ -158,6 +209,40 @@ export default function ChatConcierge({
           ? "modo: ia — las preguntas se procesan con un proveedor externo; no incluyas datos personales"
           : "modo: faq — respuestas locales de una base verificada; no incluyas datos personales"}
       </div>
+      {showContact && (
+        <div className="contact-box">
+          {contactState === "sent" ? (
+            <p className="contact-ok">✓ Enviado. David recibirá tu email y te responderá.</p>
+          ) : (
+            <>
+              <p className="contact-lead">¿Quieres que David te escriba? Déjale tu email y te responde él directamente.</p>
+              <input
+                className="contact-input"
+                type="email"
+                inputMode="email"
+                placeholder="tu@email.com"
+                value={contactEmail}
+                onChange={(e) => {
+                  setContactEmail(e.target.value);
+                  if (contactState === "error") setContactState("idle");
+                }}
+              />
+              <input
+                className="contact-input"
+                type="text"
+                placeholder="Mensaje corto (opcional): empresa, puesto…"
+                value={contactNote}
+                onChange={(e) => setContactNote(e.target.value)}
+              />
+              <button className="contact-send" onClick={() => void sendContact()} disabled={contactState === "sending"}>
+                {contactState === "sending" ? "Enviando…" : "Enviar a David"}
+              </button>
+              {contactState === "error" && <span className="contact-err">Revisa el email e inténtalo de nuevo.</span>}
+              <span className="contact-legal">Solo se usa para que David te responda. No se comparte con terceros.</span>
+            </>
+          )}
+        </div>
+      )}
       <div className="chat-input-row">
         <textarea
           className="chat-input"

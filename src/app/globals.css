@@ -567,3 +567,40 @@ h1, h2, h3, h4 { color: var(--heading); }
   text-decoration: underline;
 }
 .link-btn:hover { color: var(--accent-hover); }
+
+/* Campo de contacto opt-in (canal de captación directo a David) */
+.contact-box {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0 16px 10px;
+  padding: 12px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: var(--card);
+}
+.contact-lead { font-size: 12.5px; color: var(--heading); margin: 0; }
+.contact-input {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--text);
+}
+.contact-input:focus { outline: none; border-color: var(--accent); }
+.contact-send {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 7px;
+  background: var(--accent);
+  color: var(--cta-text);
+  cursor: pointer;
+}
+.contact-send:disabled { opacity: 0.6; cursor: default; }
+.contact-ok { font-size: 13px; color: var(--heading); margin: 0; }
+.contact-err { font-size: 11px; color: #dc2626; }
+.contact-legal { font-family: var(--font-mono); font-size: 10px; color: var(--text-2); }
