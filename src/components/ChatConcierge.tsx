@@ -47,8 +47,16 @@ export default function ChatConcierge({
     const content = (text ?? input).trim();
     if (!content || loading) return;
     setInput("");
-    const history = [...messages.filter((m) => m.role !== "error"), { role: "user" as const, content }];
-    setMessages(history);
+    // Descartamos errores y, si la última pregunta quedó sin respuesta del
+    // asistente (por un fallo previo), también esa pregunta huérfana: así el
+    // historial nunca acaba con dos mensajes "user" seguidos, cosa que la API
+    // del modelo rechaza y que rompía toda la conversación (Causa #1).
+    const clean = messages.filter((m) => m.role !== "error");
+    while (clean.length > 0 && clean[clean.length - 1].role === "user") {
+      clean.pop();
+    }
+    const history = [...clean, { role: "user" as const, content }];
+    setMessages([...messages.filter((m) => m.role !== "error"), { role: "user" as const, content }]);
     setLoading(true);
 
     try {
@@ -72,7 +80,13 @@ export default function ChatConcierge({
         ]);
       } else {
         if (data.mode) setMode(data.mode);
-        setMessages((prev) => [...prev, { role: "assistant", content: data.reply ?? "" }]);
+        const reply = data.reply?.trim();
+        setMessages((prev) => [
+          ...prev,
+          reply
+            ? { role: "assistant", content: reply }
+            : { role: "error", content: "El asistente no devolvió respuesta. Inténtalo de nuevo." },
+        ]);
         track("chat_message", { mode: data.mode ?? "faq", persona: persona.id });
       }
     } catch {

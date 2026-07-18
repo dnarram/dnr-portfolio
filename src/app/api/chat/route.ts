@@ -19,7 +19,7 @@ import { matchFaq } from "@/data/faq";
  */
 
 const MAX_MESSAGES = 12;
-const MAX_CHARS = 4000;
+const MAX_CHARS = 8000;
 const RATE_LIMIT = 20; // peticiones
 const RATE_WINDOW_MS = 10 * 60 * 1000; // por 10 minutos e IP
 
@@ -65,12 +65,20 @@ function sanitizeMessages(raw: unknown): ChatMessage[] | null {
       m === null ||
       (m.role !== "user" && m.role !== "assistant") ||
       typeof m.content !== "string" ||
-      m.content.length === 0 ||
-      m.content.length > MAX_CHARS
+      m.content.trim().length === 0
     ) {
       return null;
     }
-    out.push({ role: m.role, content: m.content });
+    // Truncar en vez de rechazar: una oferta muy larga se recorta, no rompe.
+    const content = m.content.length > MAX_CHARS ? m.content.slice(0, MAX_CHARS) : m.content;
+    // Colapsar roles consecutivos: las APIs de los modelos exigen que los
+    // roles se alternen. Si llegan dos del mismo rol seguidos, los unimos.
+    const prev = out[out.length - 1];
+    if (prev && prev.role === m.role) {
+      prev.content = `${prev.content}\n\n${content}`;
+    } else {
+      out.push({ role: m.role, content });
+    }
   }
   if (out[out.length - 1].role !== "user") return null;
   return out;
@@ -159,7 +167,10 @@ export async function POST(req: NextRequest) {
     }
 
     await notifyTelegram({ persona, empresa: empresaStr, rol: rolStr, context, userMsg: lastUserMsg, mode: "llm" });
-    return NextResponse.json({ reply: reply || "No he recibido respuesta. Inténtalo de nuevo.", mode: "llm" });
+    return NextResponse.json({
+      reply: reply.trim() || "No he podido generar una respuesta. Reformula la pregunta o escribe a David directamente.",
+      mode: "llm",
+    });
   } catch (error) {
     console.error("Chat route error:", error);
     return NextResponse.json({ error: "Error de conexión con el asistente." }, { status: 502 });
