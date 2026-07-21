@@ -295,10 +295,18 @@ export async function buildCvPdf(
   const included = lastIncluded;
 
   const makeDoc = (rs: Renderable[]) => {
-    // Agrupar por sección estándar preservando el orden de aparición
+    // Agrupar por sección estándar preservando el orden de aparición.
+    // Un bloque "plano" (skills, idiomas, certs…) no muestra su encabezado
+    // propio, así que si se quedó sin líneas visibles NO aporta nada: se
+    // descarta para no dejar una sección con el título y el cuerpo vacío (#2).
+    const hasContent = (r: Renderable): boolean => {
+      const flat = r.section === "Perfil" || isFlatBlock(r.entry.blockId);
+      if (flat) return r.visible.length > 0;
+      return Boolean(r.entry.heading) || r.visible.length > 0;
+    };
     const sections: Array<{ name: string; items: Renderable[] }> = [];
     for (const r of rs) {
-      if (r.visible.length === 0 && !r.entry.heading && !r.entry.sub) continue;
+      if (!hasContent(r)) continue;
       const last = sections[sections.length - 1];
       if (last && last.name === r.section) last.items.push(r);
       else sections.push({ name: r.section, items: [r] });

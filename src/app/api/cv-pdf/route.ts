@@ -45,7 +45,9 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const loc = searchParams.get("loc") === "madrid" ? "Madrid, España" : undefined;
+    const locParam = searchParams.get("loc");
+    const loc =
+      locParam === "madrid" ? "Madrid, España" : locParam === "malaga" ? "Málaga, España" : undefined;
     const pdf = await buildCvPdf(meta, blocks, persona, loc);
     return new NextResponse(new Uint8Array(pdf), {
       status: 200,

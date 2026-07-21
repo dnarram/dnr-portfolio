@@ -111,6 +111,18 @@ function mentionsMadrid(text: string): boolean {
   return MADRID_RE.test(t);
 }
 
+/** Poblaciones de la provincia de Málaga (incluye Ronda, donde vive David). */
+const MALAGA_RE = new RegExp(
+  "\\b(malaga|marbella|ronda|velez malaga|fuengirola|torremolinos|benalmadena|" +
+    "estepona|antequera|mijas|rincon de la victoria|nerja|alhaurin|coin|" +
+    "cartama|torre del mar|manilva|casares|axarquia|costa del sol)\\b",
+  "i",
+);
+function mentionsMalaga(text: string): boolean {
+  const t = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return MALAGA_RE.test(t);
+}
+
 function buildSystemPrompt(persona: PersonaId, empresa?: string, rol?: string): string {
   const p = PERSONAS[persona];
   const candidatura = empresa
@@ -174,13 +186,15 @@ export async function POST(req: NextRequest) {
 
   const lastUserMsg = messages[messages.length - 1].content;
 
-  // Ubicación dinámica (#3): si la conversación (mensajes del visitante,
-  // oferta pegada, rol o empresa) menciona Madrid o su comunidad, el CV
-  // se emite con "Madrid, España"; si no, queda la de por defecto.
+  // Ubicación dinámica (#1, #3): si la conversación (mensajes del visitante,
+  // oferta pegada, rol o empresa) ancla la posición en Madrid, el CV muestra
+  // "Madrid, España"; en cualquier otro caso —incluida mención explícita de
+  // Málaga o ausencia de ubicación— muestra "Málaga, España" (por defecto).
   const convText =
     messages.filter((m) => m.role === "user").map((m) => m.content).join(" ") +
     " " + (empresaStr ?? "") + " " + (rolStr ?? "");
-  const locQS = mentionsMadrid(convText) ? "&loc=madrid" : "";
+  const locQS =
+    mentionsMadrid(convText) && !mentionsMalaga(convText) ? "&loc=madrid" : "&loc=malaga";
 
   // ── Modo FAQ (0 €) — también respaldo si se agota el presupuesto
   // diario del modo IA ────────────────────────────────────────────
@@ -231,7 +245,11 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
-      reply: visible.trim() || "No he podido generar una respuesta. Reformula la pregunta o escribe a David directamente.",
+      reply:
+        visible.trim() ||
+        (cvUrl
+          ? "Aquí tienes el CV de David adaptado a tu perfil — puedes descargarlo con el botón de abajo."
+          : "No he podido generar una respuesta. Reformula la pregunta o escribe a David directamente."),
       mode: "llm",
       ...(cvUrl ? { cvUrl } : {}),
     });
