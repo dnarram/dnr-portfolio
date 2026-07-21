@@ -265,6 +265,7 @@ export async function buildCvPdf(
   meta: CvBlock | undefined,
   blocks: CvBlock[],
   persona: PersonaId = "tech",
+  locationOverride?: string,
 ): Promise<Buffer> {
   ensureFonts();
 
@@ -274,7 +275,7 @@ export async function buildCvPdf(
   // Contacto estructurado: URLs limpias (sin esquema ni www) y con etiqueta.
   const clean = (u: string) => u.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "");
   const cf = (label: string) => (meta ? field(meta.lines, label) : null);
-  const ubicacion = cf("Ubicación");
+  const ubicacion = locationOverride ?? cf("Ubicación");
   const email = cf("Email de contacto");
   const primary = [ubicacion, email].filter(Boolean).join("   ·   ");
   const links = (
@@ -334,26 +335,36 @@ export async function buildCvPdf(
             render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
           />
 
-          {sections.map((s, si) => (
-            <View key={si} style={styles.section}>
-              <Text style={styles.h2} minPresenceAhead={26}>{s.name}</Text>
-              {s.items.map((r) => {
-                const flat = s.name === "Perfil" || isFlatBlock(r.entry.blockId);
-                return (
-                  <View key={r.entry.blockId} style={flat ? undefined : styles.entry}>
-                    {!flat && r.entry.heading && (
-                      <View style={styles.entryHead} minPresenceAhead={16}>
-                        <Text style={styles.entryTitle}>{r.entry.heading}</Text>
-                        {r.entry.aside ? <Text style={styles.entryAside}>{r.entry.aside}</Text> : null}
-                      </View>
-                    )}
-                    {r.entry.sub ? <Text style={styles.entrySub}>{r.entry.sub}</Text> : null}
-                    {r.visible.map((l, i) => renderItem(l, i))}
-                  </View>
-                );
-              })}
-            </View>
-          ))}
+          {sections.map((s, si) => {
+            const flatSection = s.name === "Perfil";
+            const renderEntry = (r: Renderable) => {
+              const flat = flatSection || isFlatBlock(r.entry.blockId);
+              return (
+                <View key={r.entry.blockId} style={flat ? undefined : styles.entry}>
+                  {!flat && r.entry.heading && (
+                    <View style={styles.entryHead}>
+                      <Text style={styles.entryTitle}>{r.entry.heading}</Text>
+                      {r.entry.aside ? <Text style={styles.entryAside}>{r.entry.aside}</Text> : null}
+                    </View>
+                  )}
+                  {r.entry.sub ? <Text style={styles.entrySub}>{r.entry.sub}</Text> : null}
+                  {r.visible.map((l, i) => renderItem(l, i))}
+                </View>
+              );
+            };
+            const [first, ...rest] = s.items;
+            return (
+              <View key={si} style={styles.section}>
+                {/* Cabecera + primer bloque van juntos: un título de sección
+                    nunca queda huérfano al final de una página (#2). */}
+                <View wrap={false}>
+                  <Text style={styles.h2}>{s.name}</Text>
+                  {first ? renderEntry(first) : null}
+                </View>
+                {rest.map((r) => renderEntry(r))}
+              </View>
+            );
+          })}
 
           <Text style={styles.footer} fixed>
             CV adaptado generado desde el portfolio · dnr-portfolio-omega.vercel.app

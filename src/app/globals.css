@@ -680,4 +680,4 @@ h1, h2, h3, h4 { color: var(--heading); }
   color: var(--cta-text);
   text-decoration: none;
 }
-.cv-download:hover { filter: brightness(0.94); }
+.cv-download:hover { background: var(--accent-hover); color: var(--cta-text); text-decoration: none; }

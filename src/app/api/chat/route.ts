@@ -85,6 +85,32 @@ function sanitizeMessages(raw: unknown): ChatMessage[] | null {
   return out;
 }
 
+/**
+ * ¿El texto pide EXPLÍCITAMENTE el CV? Puerta única para generar el
+ * botón de descarga: solo cuando el visitante lo pide en su mensaje.
+ * "resume/resumir" NO cuenta (en español es "resumir", no currículo).
+ */
+function isCvRequest(text: string): boolean {
+  const t = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return /\bcv\b|curricul|curriculum vitae|hoja de vida/.test(t);
+}
+
+/**
+ * Detecta si el visitante ancla la posición en la Comunidad de Madrid
+ * (por el texto del chat o una oferta pegada). Si es así, el CV muestra
+ * "Madrid, España"; si no, la de por defecto.
+ */
+const MADRID_RE = new RegExp(
+  "\\b(madrid|alcala de henares|alcorcon|leganes|getafe|mostoles|fuenlabrada|" +
+    "torrejon|parla|alcobendas|las rozas|pozuelo|san sebastian de los reyes|" +
+    "rivas|majadahonda|collado villalba|aranjuez|coslada|valdemoro|tres cantos)\\b",
+  "i",
+);
+function mentionsMadrid(text: string): boolean {
+  const t = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return MADRID_RE.test(t);
+}
+
 function buildSystemPrompt(persona: PersonaId, empresa?: string, rol?: string): string {
   const p = PERSONAS[persona];
   const candidatura = empresa
@@ -101,7 +127,7 @@ El visitante actual se ha identificado como: "${p.label}". Adapta el registro: t
 
 Reglas estrictas:
 - No inventes datos que no estén en el perfil o el CV. Si no sabes algo, dilo con naturalidad y sugiere preguntárselo a David directamente.
-- Si el visitante pide el CV de David (o tú se lo ofreces tras analizar una oferta), responde brevemente y añade al FINAL de tu respuesta UNA última línea con este formato exacto: CV_BLOCKS: id1,id2,id3 — entre 8 y 14 ids, elegidos y ORDENADOS por relevancia para ESTE visitante según toda la conversación (su vista, la oferta o rol que haya mencionado, sus preguntas). Empieza siempre por el bloque de resumen más adecuado (resumen_tech, resumen_hr o resumen_fan). Ids disponibles: ${allCvIds().filter((i) => i !== "meta_identidad").join(", ")}. No menciones los ids en el texto visible: esa línea se convierte automáticamente en un botón de descarga del PDF.
+- SOLO si el visitante pide EXPLÍCITAMENTE el CV, currículo o curriculum de David en su mensaje, responde brevemente y añade al FINAL de tu respuesta UNA última línea con este formato exacto: CV_BLOCKS: id1,id2,id3 — entre 8 y 14 ids, elegidos y ORDENADOS por relevancia para ESTE visitante según toda la conversación (su vista, la oferta o rol que haya mencionado, sus preguntas). Empieza siempre por el bloque de resumen más adecuado (resumen_tech, resumen_hr o resumen_fan). Ids disponibles: ${allCvIds().filter((i) => i !== "meta_identidad").join(", ")}. No menciones los ids en el texto visible. NUNCA ofrezcas ni añadas el CV por iniciativa propia: si no te lo piden explícitamente, no incluyas la línea CV_BLOCKS aunque analices una oferta o hables de su experiencia.
 - Si el visitante pega una oferta de trabajo, analiza el encaje punto por punto con honestidad: qué requisitos cumple David, cuáles cumple parcialmente y cuáles no.
 - Sé conciso: máximo ~120 palabras salvo que pidan más detalle.
 - Responde en el idioma del visitante (por defecto, español).`;
@@ -148,16 +174,20 @@ export async function POST(req: NextRequest) {
 
   const lastUserMsg = messages[messages.length - 1].content;
 
+  // Ubicación dinámica (#3): si la conversación (mensajes del visitante,
+  // oferta pegada, rol o empresa) menciona Madrid o su comunidad, el CV
+  // se emite con "Madrid, España"; si no, queda la de por defecto.
+  const convText =
+    messages.filter((m) => m.role === "user").map((m) => m.content).join(" ") +
+    " " + (empresaStr ?? "") + " " + (rolStr ?? "");
+  const locQS = mentionsMadrid(convText) ? "&loc=madrid" : "";
+
   // ── Modo FAQ (0 €) — también respaldo si se agota el presupuesto
   // diario del modo IA ────────────────────────────────────────────
   if (!llmEnabled) {
     const reply = matchFaq(lastUserMsg);
     // Petición de CV sin IA: adjuntamos la descarga con la selección de su vista.
-    const cvUrl = /\b(cv|curricul)/i.test(
-      lastUserMsg.normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
-    )
-      ? `/api/cv-pdf?vista=${persona}`
-      : undefined;
+    const cvUrl = isCvRequest(lastUserMsg) ? `/api/cv-pdf?vista=${persona}${locQS}` : undefined;
     // Aun sin IA, avisamos si alguien pega una oferta: no queremos perderla.
     await notifyTelegram({ persona, empresa: empresaStr, rol: rolStr, context, userMsg: lastUserMsg, mode: "faq" });
     return NextResponse.json({ reply, mode: "faq", ...(cvUrl ? { cvUrl } : {}) });
@@ -186,15 +216,18 @@ export async function POST(req: NextRequest) {
     let visible = reply;
     let cvUrl: string | undefined;
     const marker = reply.match(/CV_BLOCKS:\s*([a-z0-9_,\s]+)/i);
-    if (marker) {
-      visible = reply.replace(/CV_BLOCKS:\s*[a-z0-9_,\s]+/gi, "").trim();
+    // Siempre quitamos el marcador del texto visible, pero SOLO generamos el
+    // botón si el visitante pidió el CV en su último mensaje (red de seguridad
+    // frente a modelos que lo ofrecen sin que se lo pidan).
+    if (marker) visible = reply.replace(/CV_BLOCKS:\s*[a-z0-9_,\s]+/gi, "").trim();
+    if (marker && isCvRequest(lastUserMsg)) {
       const valid = new Set(allCvIds());
       const ids = marker[1]
         .split(",")
         .map((s) => s.trim().toLowerCase())
         .filter((id) => valid.has(id) && id !== "meta_identidad")
         .slice(0, 14);
-      cvUrl = ids.length > 0 ? `/api/cv-pdf?blocks=${ids.join(",")}&p=${persona}` : `/api/cv-pdf?vista=${persona}`;
+      cvUrl = ids.length > 0 ? `/api/cv-pdf?blocks=${ids.join(",")}&p=${persona}${locQS}` : `/api/cv-pdf?vista=${persona}${locQS}`;
     }
 
     return NextResponse.json({
