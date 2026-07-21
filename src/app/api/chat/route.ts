@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AI_PROFILE } from "@/data/site";
+import { AI_PROFILE, SITE } from "@/data/site";
+import { cvContextForPersona, allCvIds } from "@/data/cv";
 import { PERSONAS, type PersonaId } from "@/data/personas";
 import { matchFaq } from "@/data/faq";
 
@@ -93,10 +94,14 @@ function buildSystemPrompt(persona: PersonaId, empresa?: string, rol?: string): 
 
 ${AI_PROFILE}
 
+CV de David (fuente de verdad; datos verificados por él):
+${cvContextForPersona(persona)}
+
 El visitante actual se ha identificado como: "${p.label}". Adapta el registro: técnico y con métricas para perfiles técnicos; claro, humano y orientado a encaje para HR; divulgativo y sin jerga para curiosos.${candidatura}
 
 Reglas estrictas:
-- No inventes datos que no estén en el perfil. Si no sabes algo, dilo con naturalidad y sugiere preguntárselo a David directamente.
+- No inventes datos que no estén en el perfil o el CV. Si no sabes algo, dilo con naturalidad y sugiere preguntárselo a David directamente.
+- Si el visitante pide el CV de David (o tú se lo ofreces tras analizar una oferta), responde brevemente y añade al FINAL de tu respuesta UNA última línea con este formato exacto: CV_BLOCKS: id1,id2,id3 — entre 8 y 14 ids, elegidos y ORDENADOS por relevancia para ESTE visitante según toda la conversación (su vista, la oferta o rol que haya mencionado, sus preguntas). Empieza siempre por el bloque de resumen más adecuado (resumen_tech, resumen_hr o resumen_fan). Ids disponibles: ${allCvIds().filter((i) => i !== "meta_identidad").join(", ")}. No menciones los ids en el texto visible: esa línea se convierte automáticamente en un botón de descarga del PDF.
 - Si el visitante pega una oferta de trabajo, analiza el encaje punto por punto con honestidad: qué requisitos cumple David, cuáles cumple parcialmente y cuáles no.
 - Sé conciso: máximo ~120 palabras salvo que pidan más detalle.
 - Responde en el idioma del visitante (por defecto, español).`;
@@ -147,9 +152,15 @@ export async function POST(req: NextRequest) {
   // diario del modo IA ────────────────────────────────────────────
   if (!llmEnabled) {
     const reply = matchFaq(lastUserMsg);
+    // Petición de CV sin IA: adjuntamos la descarga con la selección de su vista.
+    const cvUrl = /\b(cv|curricul)/i.test(
+      lastUserMsg.normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
+    )
+      ? `/api/cv-pdf?vista=${persona}`
+      : undefined;
     // Aun sin IA, avisamos si alguien pega una oferta: no queremos perderla.
     await notifyTelegram({ persona, empresa: empresaStr, rol: rolStr, context, userMsg: lastUserMsg, mode: "faq" });
-    return NextResponse.json({ reply, mode: "faq" });
+    return NextResponse.json({ reply, mode: "faq", ...(cvUrl ? { cvUrl } : {}) });
   }
 
   // ── Modo LLM ────────────────────────────────────────────────────
@@ -167,9 +178,29 @@ export async function POST(req: NextRequest) {
     }
 
     await notifyTelegram({ persona, empresa: empresaStr, rol: rolStr, context, userMsg: lastUserMsg, mode: "llm" });
+
+    // ── Marcador CV_BLOCKS → botón de descarga ──────────────────
+    // La IA solo ELIGE ids de bloques; aquí se validan contra la
+    // lista real y se convierten en la URL del PDF. El marcador se
+    // elimina del texto visible.
+    let visible = reply;
+    let cvUrl: string | undefined;
+    const marker = reply.match(/CV_BLOCKS:\s*([a-z0-9_,\s]+)/i);
+    if (marker) {
+      visible = reply.replace(/CV_BLOCKS:\s*[a-z0-9_,\s]+/gi, "").trim();
+      const valid = new Set(allCvIds());
+      const ids = marker[1]
+        .split(",")
+        .map((s) => s.trim().toLowerCase())
+        .filter((id) => valid.has(id) && id !== "meta_identidad")
+        .slice(0, 14);
+      cvUrl = ids.length > 0 ? `/api/cv-pdf?blocks=${ids.join(",")}&p=${persona}` : `/api/cv-pdf?vista=${persona}`;
+    }
+
     return NextResponse.json({
-      reply: reply.trim() || "No he podido generar una respuesta. Reformula la pregunta o escribe a David directamente.",
+      reply: visible.trim() || "No he podido generar una respuesta. Reformula la pregunta o escribe a David directamente.",
       mode: "llm",
+      ...(cvUrl ? { cvUrl } : {}),
     });
   } catch (error) {
     console.error("Chat route error:", error);

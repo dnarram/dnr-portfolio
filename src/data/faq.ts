@@ -57,8 +57,15 @@ const ENTRIES: readonly FaqEntry[] = [
       "Su método en tres pasos: (1) replicar el pipeline con una implementación independiente para validar la lógica, (2) verificar cada cifra contra los datos crudos — si no cuadra, no se publica — y (3) documentar todo de forma reproducible y defendible. Lo ha aplicado en los tres proyectos del portfolio.",
   },
   {
+    id: "cv",
+    keywords: ["cv", "curriculum", "currículum", "curriculo", "currículo", "resume de david", "descargar"],
+    answer:
+      "Te he preparado el CV de David adaptado a tu perfil — puedes descargarlo en PDF con el botón que aparece justo debajo. " +
+      `Si quieres una versión ajustada a una vacante concreta, activa el modo IA del chat o escríbele a ${SITE.email} y la prepara en menos de un día.`,
+  },
+  {
     id: "contacto",
-    keywords: ["contacto", "email", "correo", "linkedin", "cv", "curriculum", "currículum", "entrevista", "llamada"],
+    keywords: ["contacto", "email", "correo", "linkedin", "entrevista", "llamada"],
     answer: `Puedes escribirle a ${SITE.email} o encontrarle en GitHub (${SITE.github}) y LinkedIn. Responde rápido y puede preparar un CV adaptado al puesto en menos de un día.`,
   },
 ];

@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "Portfolio adaptativo de David Naranjo Ramírez — el contenido se recompila según el visitante",
-  "engines": { "node": ">=18.18" },
+  "engines": {
+    "node": ">=18.18"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,6 +14,7 @@
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.5",
     "@fontsource-variable/jetbrains-mono": "^5.2.5",
+    "@react-pdf/renderer": "^4.5.1",
     "next": "^15.3.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

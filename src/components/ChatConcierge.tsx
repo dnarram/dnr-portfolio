@@ -7,6 +7,8 @@ import { track, type OriginContext } from "@/lib/track";
 interface ChatMessage {
   role: "user" | "assistant" | "error";
   content: string;
+  /** URL de descarga del CV adaptado (la añade el servidor cuando procede) */
+  cvUrl?: string;
 }
 
 // Umbral de aviso por entrada larguísima (algo por debajo del límite del
@@ -102,7 +104,7 @@ export default function ChatConcierge({
           context: origin ?? {},
         }),
       });
-      const data = (await res.json()) as { reply?: string; mode?: "faq" | "llm"; error?: string };
+      const data = (await res.json()) as { reply?: string; mode?: "faq" | "llm"; error?: string; cvUrl?: string };
       if (!res.ok || data.error) {
         setMessages((prev) => [
           ...prev,
@@ -114,7 +116,7 @@ export default function ChatConcierge({
         setMessages((prev) => [
           ...prev,
           reply
-            ? { role: "assistant", content: reply }
+            ? { role: "assistant", content: reply, ...(data.cvUrl ? { cvUrl: data.cvUrl } : {}) }
             : { role: "error", content: "El asistente no devolvió respuesta. Inténtalo de nuevo." },
         ]);
         track("chat_message", { mode: data.mode ?? "faq", persona: persona.id });
@@ -192,6 +194,16 @@ export default function ChatConcierge({
         {messages.map((m, i) => (
           <div key={i} className={"msg " + (m.role === "user" ? "user" : m.role === "error" ? "err" : "ai")}>
             {m.content}
+            {m.cvUrl && (
+              <a
+                className="cv-download"
+                href={m.cvUrl}
+                download="CV_David_Naranjo_Ramirez.pdf"
+                onClick={() => track("cv_download", { persona: persona.id })}
+              >
+                ⬇ Descargar CV adaptado (PDF)
+              </a>
+            )}
           </div>
         ))}
         {loading && <div className="typing">escribiendo…</div>}
