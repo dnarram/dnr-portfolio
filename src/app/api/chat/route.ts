@@ -180,9 +180,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const provider = (process.env.AI_PROVIDER ?? "groq").toLowerCase();
-  const providerKey = provider === "anthropic" ? process.env.ANTHROPIC_API_KEY : process.env.GROQ_API_KEY;
-  const llmEnabled = Boolean(providerKey) && process.env.CHAT_MODE === "llm" && !overDailyBudget();
+  // Cadena de proveedores de IA con fallback (orden: Groq → OpenRouter →
+  // Anthropic). Un proveedor entra en la cadena solo si su key está
+  // configurada. Si toda la cadena falla, el chat degrada a modo FAQ.
+  const llmEnabled =
+    process.env.CHAT_MODE === "llm" &&
+    !overDailyBudget() &&
+    Boolean(process.env.GROQ_API_KEY || process.env.OPENROUTER_API_KEY || process.env.ANTHROPIC_API_KEY);
 
   const lastUserMsg = messages[messages.length - 1].content;
 
@@ -196,67 +200,60 @@ export async function POST(req: NextRequest) {
   const locQS =
     mentionsMadrid(convText) && !mentionsMalaga(convText) ? "&loc=madrid" : "&loc=malaga";
 
-  // ── Modo FAQ (0 €) — también respaldo si se agota el presupuesto
-  // diario del modo IA ────────────────────────────────────────────
-  if (!llmEnabled) {
+  // Respuesta FAQ (0 €): respaldo cuando no hay IA configurada, se agotó el
+  // presupuesto, o TODA la cadena de proveedores falló. Nunca deja al
+  // visitante sin respuesta; si pide el CV, se lo entrega igualmente.
+  const faqResponse = async () => {
     const reply = matchFaq(lastUserMsg);
-    // Petición de CV sin IA: adjuntamos la descarga con la selección de su vista.
     const cvUrl = isCvRequest(lastUserMsg) ? `/api/cv-pdf?vista=${persona}${locQS}` : undefined;
-    // Aun sin IA, avisamos si alguien pega una oferta: no queremos perderla.
     await notifyTelegram({ persona, empresa: empresaStr, rol: rolStr, context, userMsg: lastUserMsg, mode: "faq" });
     return NextResponse.json({ reply, mode: "faq", ...(cvUrl ? { cvUrl } : {}) });
+  };
+
+  // ── Modo IA con cadena de fallback ──────────────────────────────
+  if (llmEnabled) {
+    try {
+      const llm = await callLlmChain(persona, empresaStr, rolStr, messages);
+      if (llm) {
+        await notifyTelegram({ persona, empresa: empresaStr, rol: rolStr, context, userMsg: lastUserMsg, mode: "llm" });
+
+        // ── Marcador CV_BLOCKS → botón de descarga ──────────────
+        // La IA solo ELIGE ids de bloques; aquí se validan contra la lista
+        // real y se convierten en la URL del PDF. El marcador se elimina del
+        // texto visible; el botón solo se genera si el visitante pidió el CV.
+        let visible = llm.reply;
+        let cvUrl: string | undefined;
+        const marker = llm.reply.match(/CV_BLOCKS:\s*([a-z0-9_,\s]+)/i);
+        if (marker) visible = llm.reply.replace(/CV_BLOCKS:\s*[a-z0-9_,\s]+/gi, "").trim();
+        if (marker && isCvRequest(lastUserMsg)) {
+          const valid = new Set(allCvIds());
+          const ids = marker[1]
+            .split(",")
+            .map((s) => s.trim().toLowerCase())
+            .filter((id) => valid.has(id) && id !== "meta_identidad")
+            .slice(0, 14);
+          cvUrl = ids.length > 0 ? `/api/cv-pdf?blocks=${ids.join(",")}&p=${persona}${locQS}` : `/api/cv-pdf?vista=${persona}${locQS}`;
+        }
+
+        return NextResponse.json({
+          reply:
+            visible.trim() ||
+            (cvUrl
+              ? "Aquí tienes el CV de David adaptado a tu perfil — puedes descargarlo con el botón de abajo."
+              : "No he podido generar una respuesta. Reformula la pregunta o escribe a David directamente."),
+          mode: "llm",
+          ...(cvUrl ? { cvUrl } : {}),
+        });
+      }
+      // Toda la cadena falló → degradamos a FAQ (no devolvemos un error muerto).
+      console.warn("Chat: toda la cadena de IA falló; degradando a FAQ");
+    } catch (error) {
+      console.error("Chat route error:", error);
+      // Cualquier excepción inesperada → también degradamos a FAQ.
+    }
   }
 
-  // ── Modo LLM ────────────────────────────────────────────────────
-  try {
-    const reply =
-      provider === "anthropic"
-        ? await callAnthropic(providerKey as string, persona, empresaStr, rolStr, messages)
-        : await callGroq(providerKey as string, persona, empresaStr, rolStr, messages);
-
-    if (reply === null) {
-      return NextResponse.json(
-        { error: "El asistente no está disponible ahora mismo. Inténtalo en un momento." },
-        { status: 502 },
-      );
-    }
-
-    await notifyTelegram({ persona, empresa: empresaStr, rol: rolStr, context, userMsg: lastUserMsg, mode: "llm" });
-
-    // ── Marcador CV_BLOCKS → botón de descarga ──────────────────
-    // La IA solo ELIGE ids de bloques; aquí se validan contra la
-    // lista real y se convierten en la URL del PDF. El marcador se
-    // elimina del texto visible.
-    let visible = reply;
-    let cvUrl: string | undefined;
-    const marker = reply.match(/CV_BLOCKS:\s*([a-z0-9_,\s]+)/i);
-    // Siempre quitamos el marcador del texto visible, pero SOLO generamos el
-    // botón si el visitante pidió el CV en su último mensaje (red de seguridad
-    // frente a modelos que lo ofrecen sin que se lo pidan).
-    if (marker) visible = reply.replace(/CV_BLOCKS:\s*[a-z0-9_,\s]+/gi, "").trim();
-    if (marker && isCvRequest(lastUserMsg)) {
-      const valid = new Set(allCvIds());
-      const ids = marker[1]
-        .split(",")
-        .map((s) => s.trim().toLowerCase())
-        .filter((id) => valid.has(id) && id !== "meta_identidad")
-        .slice(0, 14);
-      cvUrl = ids.length > 0 ? `/api/cv-pdf?blocks=${ids.join(",")}&p=${persona}${locQS}` : `/api/cv-pdf?vista=${persona}${locQS}`;
-    }
-
-    return NextResponse.json({
-      reply:
-        visible.trim() ||
-        (cvUrl
-          ? "Aquí tienes el CV de David adaptado a tu perfil — puedes descargarlo con el botón de abajo."
-          : "No he podido generar una respuesta. Reformula la pregunta o escribe a David directamente."),
-      mode: "llm",
-      ...(cvUrl ? { cvUrl } : {}),
-    });
-  } catch (error) {
-    console.error("Chat route error:", error);
-    return NextResponse.json({ error: "Error de conexión con el asistente." }, { status: 502 });
-  }
+  return faqResponse();
 }
 
 /* ── Proveedores LLM ──────────────────────────────────────────────
@@ -286,6 +283,87 @@ async function callGroq(
   }
   const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
   return data.choices?.[0]?.message?.content ?? "";
+}
+
+/**
+ * OpenRouter — un endpoint OpenAI-compatible que da acceso a modelos
+ * gratuitos. Enviamos una LISTA de modelos: OpenRouter prueba el siguiente
+ * si el primero está saturado o caído (fallback entre modelos gratis, en
+ * una sola petición). La lista rota con el tiempo; se configura por env.
+ */
+async function callOpenRouter(
+  persona: PersonaId,
+  empresa: string | undefined,
+  rol: string | undefined,
+  messages: ChatMessage[],
+): Promise<string | null> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) return null;
+  const models = (
+    process.env.OPENROUTER_MODELS ??
+    "meta-llama/llama-3.3-70b-instruct:free,openai/gpt-oss-120b:free"
+  )
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (models.length === 0) return null;
+
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://dnr-portfolio-omega.vercel.app",
+      "X-Title": "Portfolio DNR",
+    },
+    body: JSON.stringify({
+      model: models[0],
+      models, // OpenRouter prueba estos en orden si el primero falla
+      max_tokens: 700,
+      temperature: 0.4,
+      messages: [{ role: "system", content: buildSystemPrompt(persona, empresa, rol) }, ...messages],
+    }),
+  });
+  if (!res.ok) {
+    console.error("OpenRouter API error:", res.status, await res.text());
+    return null;
+  }
+  const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+  return data.choices?.[0]?.message?.content ?? "";
+}
+
+/**
+ * Orquestador de la cadena de IA. Prueba los proveedores en orden y
+ * devuelve la primera respuesta no vacía, o null si todos fallan (lo que
+ * hace que el handler degrade a FAQ). Un proveedor solo entra si su key
+ * está configurada.
+ */
+async function callLlmChain(
+  persona: PersonaId,
+  empresa: string | undefined,
+  rol: string | undefined,
+  messages: ChatMessage[],
+): Promise<{ reply: string; provider: string } | null> {
+  const chain: Array<{ name: string; run: () => Promise<string | null> }> = [];
+  if (process.env.GROQ_API_KEY)
+    chain.push({ name: "groq", run: () => callGroq(process.env.GROQ_API_KEY as string, persona, empresa, rol, messages) });
+  if (process.env.OPENROUTER_API_KEY)
+    chain.push({ name: "openrouter", run: () => callOpenRouter(persona, empresa, rol, messages) });
+  if (process.env.ANTHROPIC_API_KEY)
+    chain.push({ name: "anthropic", run: () => callAnthropic(process.env.ANTHROPIC_API_KEY as string, persona, empresa, rol, messages) });
+
+  for (const p of chain) {
+    try {
+      const r = await p.run();
+      if (r && r.trim()) {
+        if (p.name !== chain[0].name) console.warn(`Chat: respondió el fallback "${p.name}"`);
+        return { reply: r, provider: p.name };
+      }
+    } catch (e) {
+      console.error(`Chat: el proveedor "${p.name}" lanzó una excepción`, e);
+    }
+  }
+  return null;
 }
 
 async function callAnthropic(
