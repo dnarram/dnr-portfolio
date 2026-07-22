@@ -97,7 +97,7 @@ export default function ChatConcierge({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           // El servidor reconstruye el contexto: aquí solo viaja lo imprescindible.
-          messages: history.slice(-10).map(({ role, content }) => ({ role, content })),
+          messages: history.slice(-6).map(({ role, content }) => ({ role, content })),
           persona: persona.id,
           empresa,
           rol,

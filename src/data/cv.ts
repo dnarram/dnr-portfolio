@@ -510,16 +510,6 @@ export function selectBlocks(ids: string[]): CvBlock[] {
 
 /* Contexto del CV para el system prompt de la IA: bloques de la vista
    actual + básicos comunes. El texto llega ya limpio de datos privados. */
-export function cvContextForPersona(persona: PersonaId): string {
-  const ids = [
-    "meta_identidad",
-    ...(CV_PRESETS[persona] ?? []),
-    "idiomas", "certs", "condiciones", "motivacion", "objetivo_puesto",
-  ];
-  return selectBlocks(ids)
-    .map((b) => `## ${displayTitle(b)}\n${b.lines.join("\n")}`)
-    .join("\n\n");
-}
 
 export function allCvIds(): string[] {
   return parseCvBlocks().map((b) => b.id);
@@ -719,4 +709,37 @@ export function atsSection(blockId: string): string {
   if (blockId === "condiciones") return "Disponibilidad";
   if (blockId === "motivacion" || blockId === "objetivo_puesto") return "Objetivo profesional";
   return "Información adicional";
+}
+
+/* ════════════════════════════════════════════════════════════════
+   VISTA COMPRIMIDA PARA EL CHAT
+   ----------------------------------------------------------------
+   Deriva del MISMO markdown una versión en texto plano y compacta
+   para el contexto de la IA cuando responde preguntas: sin etiquetas
+   {p1}/{tech}, sin marcadores ⟨⟩, sin nombres de campo redundantes,
+   sin comentarios. Incluye TODO el contenido (para poder responder
+   cualquier pregunta) salvo las variantes de resumen que no tocan a
+   esta vista. Una sola fuente → cero riesgo de desincronización.
+   ════════════════════════════════════════════════════════════════ */
+export function cvForChat(persona: PersonaId): string {
+  const resumenId =
+    persona === "hr" ? "resumen_hr" : persona === "fan" ? "resumen_fan" : "resumen_tech";
+  const blocks = parseCvBlocks().filter((b) => {
+    if (b.id === "meta_identidad") return false; // el contacto no ayuda a responder
+    if (b.id.startsWith("resumen_")) return b.id === resumenId; // solo la variante pertinente
+    return true;
+  });
+
+  const out: string[] = [];
+  for (const b of blocks) {
+    const e = toCvEntry(b);
+    const parts: string[] = [];
+    const head = e.heading ? e.heading + (e.aside ? ` (${e.aside})` : "") : "";
+    if (head) parts.push(head);
+    if (e.sub) parts.push(e.sub);
+    for (const l of e.lines) parts.push(l.text);
+    const line = parts.filter((p) => p.trim().length > 0).join(". ");
+    if (line) out.push(line);
+  }
+  return out.join("\n");
 }

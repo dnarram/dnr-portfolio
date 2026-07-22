@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AI_PROFILE, SITE } from "@/data/site";
-import { cvContextForPersona, allCvIds } from "@/data/cv";
+import { cvForChat, allCvIds } from "@/data/cv";
 import { PERSONAS, type PersonaId } from "@/data/personas";
 import { matchFaq } from "@/data/faq";
 
@@ -133,7 +133,7 @@ function buildSystemPrompt(persona: PersonaId, empresa?: string, rol?: string): 
 ${AI_PROFILE}
 
 CV de David (fuente de verdad; datos verificados por él):
-${cvContextForPersona(persona)}
+${cvForChat(persona)}
 
 El visitante actual se ha identificado como: "${p.label}". Adapta el registro: técnico y con métricas para perfiles técnicos; claro, humano y orientado a encaje para HR; divulgativo y sin jerga para curiosos.${candidatura}
 
@@ -190,15 +190,23 @@ export async function POST(req: NextRequest) {
 
   const lastUserMsg = messages[messages.length - 1].content;
 
-  // Ubicación dinámica (#1, #3): si la conversación (mensajes del visitante,
-  // oferta pegada, rol o empresa) ancla la posición en Madrid, el CV muestra
-  // "Madrid, España"; en cualquier otro caso —incluida mención explícita de
-  // Málaga o ausencia de ubicación— muestra "Málaga, España" (por defecto).
-  const convText =
-    messages.filter((m) => m.role === "user").map((m) => m.content).join(" ") +
-    " " + (empresaStr ?? "") + " " + (rolStr ?? "");
-  const locQS =
-    mentionsMadrid(convText) && !mentionsMalaga(convText) ? "&loc=madrid" : "&loc=malaga";
+  // Ubicación dinámica (#1, #3): fluye con la conversación. Se toma la
+  // ubicación de la MENCIÓN MÁS RECIENTE (recorriendo los mensajes del
+  // visitante de nuevo a viejo): si el último sitio citado es de Madrid →
+  // "Madrid, España"; si es de Málaga o no hay ninguno → "Málaga, España".
+  const userTexts = messages.filter((m) => m.role === "user").map((m) => m.content);
+  const resolveLoc = (): "madrid" | "malaga" => {
+    for (let i = userTexts.length - 1; i >= 0; i--) {
+      const md = mentionsMadrid(userTexts[i]);
+      const mg = mentionsMalaga(userTexts[i]);
+      if (md && !mg) return "madrid";
+      if (mg && !md) return "malaga";
+      // Si un mismo mensaje cita ambas (ambiguo), seguimos a mensajes anteriores.
+    }
+    const base = (empresaStr ?? "") + " " + (rolStr ?? "");
+    return mentionsMadrid(base) && !mentionsMalaga(base) ? "madrid" : "malaga";
+  };
+  const locQS = `&loc=${resolveLoc()}`;
 
   // Respuesta FAQ (0 €): respaldo cuando no hay IA configurada, se agotó el
   // presupuesto, o TODA la cadena de proveedores falló. Nunca deja al
