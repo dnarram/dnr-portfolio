@@ -247,7 +247,7 @@ function renderItem(l: CvLine, key: number) {
   const idx = l.text.indexOf(":");
   const hasLabel = idx > 0 && idx < 40;
   return (
-    <View key={key} style={styles.row}>
+    <View key={key} style={styles.row} wrap={false}>
       <Text style={styles.dot}>•</Text>
       {hasLabel ? (
         <Text style={styles.itemText}>

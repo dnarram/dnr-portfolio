@@ -139,7 +139,7 @@ El visitante actual se ha identificado como: "${p.label}". Adapta el registro: t
 
 Reglas estrictas:
 - No inventes datos que no estén en el perfil o el CV. Si no sabes algo, dilo con naturalidad y sugiere preguntárselo a David directamente.
-- SOLO si el visitante pide EXPLÍCITAMENTE el CV, currículo o curriculum de David en su mensaje, responde brevemente y añade al FINAL de tu respuesta UNA última línea con este formato exacto: CV_BLOCKS: id1,id2,id3 — entre 8 y 14 ids, elegidos y ORDENADOS por relevancia para ESTE visitante según toda la conversación (su vista, la oferta o rol que haya mencionado, sus preguntas). Empieza siempre por el bloque de resumen más adecuado (resumen_tech, resumen_hr o resumen_fan). Ids disponibles: ${allCvIds().filter((i) => i !== "meta_identidad").join(", ")}. No menciones los ids en el texto visible. NUNCA ofrezcas ni añadas el CV por iniciativa propia: si no te lo piden explícitamente, no incluyas la línea CV_BLOCKS aunque analices una oferta o hables de su experiencia.
+- SOLO si el visitante pide EXPLÍCITAMENTE el CV, currículo o curriculum de David en su mensaje, responde brevemente y añade al FINAL de tu respuesta UNA última línea con este formato exacto: CV_BLOCKS: id1,id2,id3 — entre 8 y 14 ids, elegidos y ORDENADOS por relevancia para ESTE visitante según toda la conversación (su vista, la oferta o rol que haya mencionado, sus preguntas). Empieza siempre por el bloque de resumen más adecuado (resumen_tech, resumen_hr o resumen_fan). Ids disponibles: ${allCvIds().filter((i) => i !== "meta_identidad").join(", ")}. IMPORTANTE: el CV de David es un documento profesional PÚBLICO que él quiere compartir; cuando incluyas la línea CV_BLOCKS, tu texto visible debe CONFIRMAR la entrega de forma positiva y breve (p. ej. "Claro, aquí tienes el CV de David adaptado a esta posición"). NUNCA escribas una negativa, ni digas que no puedes compartirlo, ni redirijas al email en ese caso. No menciones los ids en el texto visible. NUNCA ofrezcas ni añadas el CV por iniciativa propia: si no te lo piden explícitamente, no incluyas la línea CV_BLOCKS aunque analices una oferta o hables de su experiencia.
 - Si el visitante pega una oferta de trabajo, analiza el encaje punto por punto con honestidad: qué requisitos cumple David, cuáles cumple parcialmente y cuáles no.
 - Sé conciso: máximo ~120 palabras salvo que pidan más detalle.
 - Responde en el idioma del visitante (por defecto, español).`;
@@ -243,12 +243,21 @@ export async function POST(req: NextRequest) {
           cvUrl = ids.length > 0 ? `/api/cv-pdf?blocks=${ids.join(",")}&p=${persona}${locQS}` : `/api/cv-pdf?vista=${persona}${locQS}`;
         }
 
+        // Coherencia (#1): si vamos a entregar el CV pero el modelo escribió
+        // una negativa o redirigió al email, sustituimos por una confirmación
+        // limpia. Un "no puedo compartir el CV" + botón de descarga es absurdo.
+        const looksLikeRefusal =
+          /no puedo|no me es posible|no está permitido|no tengo acceso|lo siento[,.\s]+pero|te sugiero (que )?(lo )?contact|contactar(lo|le)? directamente|no puedo compartir/i.test(
+            visible,
+          );
+        const finalReply =
+          cvUrl && (!visible.trim() || looksLikeRefusal)
+            ? "Claro, aquí tienes el CV de David adaptado a tu perfil — puedes descargarlo con el botón de abajo."
+            : visible.trim() ||
+              "No he podido generar una respuesta. Reformula la pregunta o escribe a David directamente.";
+
         return NextResponse.json({
-          reply:
-            visible.trim() ||
-            (cvUrl
-              ? "Aquí tienes el CV de David adaptado a tu perfil — puedes descargarlo con el botón de abajo."
-              : "No he podido generar una respuesta. Reformula la pregunta o escribe a David directamente."),
+          reply: finalReply,
           mode: "llm",
           ...(cvUrl ? { cvUrl } : {}),
         });
