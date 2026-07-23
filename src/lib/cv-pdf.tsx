@@ -180,23 +180,35 @@ const BUDGET = 102;
 
 export function assembleCv(blocks: CvBlock[], persona: PersonaId): Renderable[] {
   const affinities = new Set(PERSONA_AFFINITY[persona] ?? []);
-  const renderables: Renderable[] = blocks.map((b) => ({
+  const renderables: Renderable[] = blocks.map((b, i) => ({
     entry: toCvEntry(b),
     section: atsSection(b.id),
     visible: [],
+    rank: i,
+    condensed: false,
   }));
 
   let units = 0;
 
-  // Pase 1 — obligatorio: todo p1 (+ coste fijo de cada encabezado de entrada)
+  // Pase 1 — núcleo: las líneas p1 de cada entrada. Se limita el número de
+  // líneas p1 por entrada según su relevancia, para que las entradas menos
+  // pertinentes no consuman el espacio de las prioritarias (pero TODAS
+  // conservan al menos su titular y una línea de contenido).
   for (const r of renderables) {
     units += r.entry.heading ? 1 : 0;
     if (r.entry.sub) units += 1;
-    for (const l of r.entry.lines) {
-      if (l.priority === 1) {
-        r.visible.push(l);
-        units += lineUnits(l);
-      }
+    const p1s = r.entry.lines.filter((l) => l.priority === 1);
+    const cap = r.rank < 4 ? 5 : r.rank < 8 ? 3 : 2;
+    for (const l of p1s.slice(0, cap)) {
+      r.visible.push(l);
+      units += lineUnits(l);
+    }
+    // Los bloques planos (competencias, idiomas, certificaciones) no tienen
+    // encabezado propio: si se quedan sin líneas desaparecen y el CV pierde
+    // una sección entera. Se garantiza al menos una línea aunque sea {p2}.
+    if (r.visible.length === 0 && isFlatBlock(r.entry.blockId) && r.entry.lines.length > 0) {
+      r.visible.push(r.entry.lines[0]);
+      units += lineUnits(r.entry.lines[0]);
     }
   }
 
@@ -359,7 +371,7 @@ export async function buildCvPdf(
                       {r.entry.aside ? <Text style={styles.entryAside}>{r.entry.aside}</Text> : null}
                     </View>
                   )}
-                  {r.entry.sub ? <Text style={styles.entrySub}>{r.entry.sub}</Text> : null}
+                  {r.entry.sub && !r.condensed ? <Text style={styles.entrySub}>{r.entry.sub}</Text> : null}
                   {r.visible.map((l, i) => renderItem(l, i))}
                 </View>
               );
@@ -386,27 +398,73 @@ export async function buildCvPdf(
     );
   };
 
-  let active = renderables.slice();
+  const active = renderables.slice();
   let buf = Buffer.from(await renderToBuffer(makeDoc(active)));
 
-  // Verificación exacta del tope de 2 páginas, en dos niveles:
-  // 1) quitar opcionales por lotes desde el final (los de menor
-  //    prioridad/afinidad entraron los últimos);
-  // 2) si aun con solo lo obligatorio no cabe, quitar entradas enteras
-  //    del final (las menos relevantes según el orden de selección).
-  let guard = 16;
+  // Ajuste al tope de 2 páginas SIN mutilar el CV. Escalera de recortes,
+  // de menos a más agresivo, preservando siempre la historia completa:
+  //   1) quitar líneas opcionales (p2/p3) desde las menos relevantes;
+  //   2) recortar viñetas de las entradas menos relevantes, dejando 1;
+  //   3) CONDENSAR las entradas menos relevantes a "puesto — empresa ·
+  //      fechas" (una línea): la trayectoria sigue completa y visible;
+  //   4) solo si aun así no cupiese, eliminar la última entrada.
+  // Nunca se elimina una entrada mientras queden líneas que recortar.
+  const byRankDesc = () => active.slice().sort((a, b) => b.rank - a.rank);
+
+  let guard = 24;
   while (countPdfPages(buf) > 2 && guard-- > 0) {
+    let changed = false;
+
+    // 1) opcionales, por lotes desde el final de la selección. Nunca se
+    //    quita la ÚLTIMA línea de un bloque plano (skills, idiomas, certs):
+    //    dejaría la sección vacía y el CV perdería competencias enteras.
     if (included.length > 0) {
       const batch = Math.max(1, Math.floor(included.length / 3));
-      for (let i = 0; i < batch; i++) {
-        const drop = included.pop();
-        if (drop) drop.r.visible = drop.r.visible.filter((l) => l !== drop.line);
+      let removed = 0;
+      for (let i = included.length - 1; i >= 0 && removed < batch; i--) {
+        const cand = included[i];
+        const isLastOfFlat =
+          isFlatBlock(cand.r.entry.blockId) && cand.r.visible.length <= 1;
+        if (isLastOfFlat) continue;
+        cand.r.visible = cand.r.visible.filter((l) => l !== cand.line);
+        included.splice(i, 1);
+        removed++;
       }
-    } else if (active.length > 2) {
-      active = active.slice(0, active.length - 1);
-    } else {
-      break;
+      changed = removed > 0;
     }
+
+    // 2) reducir a una viñeta las entradas menos relevantes
+    if (!changed) {
+      for (const r of byRankDesc()) {
+        if (!r.condensed && r.visible.length > 1) {
+          r.visible = r.visible.slice(0, 1);
+          changed = true;
+          break;
+        }
+      }
+    }
+
+    // 3) condensar a solo encabezado + fechas (la trayectoria se conserva).
+    //    Los bloques planos (skills, idiomas, certs) NO se condensan: como no
+    //    muestran encabezado propio, condensarlos los haría desaparecer y el
+    //    CV perdería una sección entera de competencias.
+    if (!changed) {
+      for (const r of byRankDesc()) {
+        if (!r.condensed && r.entry.heading && !isFlatBlock(r.entry.blockId)) {
+          r.condensed = true;
+          r.visible = [];
+          changed = true;
+          break;
+        }
+      }
+    }
+
+    // 4) último recurso
+    if (!changed) {
+      if (active.length > 3) active.pop();
+      else break;
+    }
+
     buf = Buffer.from(await renderToBuffer(makeDoc(active)));
   }
   return buf;
