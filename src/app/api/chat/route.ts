@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AI_PROFILE, SITE } from "@/data/site";
-import { cvForChat, allCvIds } from "@/data/cv";
+import { cvForChat, allCvIds, ensureCompleteSelection } from "@/data/cv";
 import { PERSONAS, type PersonaId } from "@/data/personas";
 import { matchFaq } from "@/data/faq";
 
@@ -235,12 +235,14 @@ export async function POST(req: NextRequest) {
         if (marker) visible = llm.reply.replace(/CV_BLOCKS:\s*[a-z0-9_,\s]+/gi, "").trim();
         if (marker && isCvRequest(lastUserMsg)) {
           const valid = new Set(allCvIds());
-          const ids = marker[1]
+          const picked = marker[1]
             .split(",")
             .map((s) => s.trim().toLowerCase())
-            .filter((id) => valid.has(id) && id !== "meta_identidad")
-            .slice(0, 14);
-          cvUrl = ids.length > 0 ? `/api/cv-pdf?blocks=${ids.join(",")}&p=${persona}${locQS}` : `/api/cv-pdf?vista=${persona}${locQS}`;
+            .filter((id) => valid.has(id) && id !== "meta_identidad");
+          // La IA marca la RELEVANCIA (orden); el servidor garantiza que el CV
+          // salga completo: proyectos, trayectoria, competencias y formación.
+          const ids = ensureCompleteSelection(picked, persona);
+          cvUrl = `/api/cv-pdf?blocks=${ids.join(",")}&p=${persona}${locQS}`;
         }
 
         // Coherencia (#1): si vamos a entregar el CV pero el modelo escribió

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CV_PRESETS, parseCvBlocks, selectBlocks } from "@/data/cv";
+import { CV_PRESETS, ensureCompleteSelection, parseCvBlocks, selectBlocks } from "@/data/cv";
 import type { PersonaId } from "@/data/personas";
 import { buildCvPdf } from "@/lib/cv-pdf";
 
@@ -36,6 +36,9 @@ export async function GET(req: NextRequest) {
   const persona: PersonaId =
     (pParam && pParam in CV_PRESETS ? (pParam as PersonaId) : null) ??
     (vistaParam && vistaParam in CV_PRESETS ? (vistaParam as PersonaId) : "tech");
+
+  // Completitud garantizada: la selección marca prioridad, no exclusión.
+  ids = ensureCompleteSelection(ids, persona);
 
   let blocks = selectBlocks(ids).filter((b) => b.id !== "meta_identidad");
 

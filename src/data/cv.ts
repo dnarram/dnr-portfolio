@@ -766,3 +766,63 @@ export function cvForChat(persona: PersonaId): string {
   }
   return out.join("\n");
 }
+
+/* ════════════════════════════════════════════════════════════════
+   GARANTÍA DE COMPLETITUD
+   ----------------------------------------------------------------
+   Un CV puede PRIORIZAR según el puesto, pero nunca puede parecer
+   incompleto: un candidato con 5 años en IT global y 4 proyectos no
+   puede aparecer con una sola experiencia y un solo proyecto. Eso
+   destruye el storytelling y levanta sospechas en el recruiter.
+
+   CV_CORE_IDS es el esqueleto mínimo que SIEMPRE se incluye, sea
+   cual sea la selección de la IA. La relevancia decide el ORDEN y el
+   nivel de DETALLE (el motor del PDF condensa lo menos pertinente),
+   nunca la presencia.
+   ════════════════════════════════════════════════════════════════ */
+export const CV_CORE_IDS: string[] = [
+  // Proyectos: los 4 demuestran amplitud (SQL/ETL, Python/EDA, full-stack, producto).
+  "proj_olist",
+  "proj_edafatalforce",
+  "proj_rondaguide",
+  "proj_portfolio",
+  // Trayectoria completa: la PROGRESIÓN es la historia (agente → PM en 5 años).
+  "exp_c3i_pm_tier2",
+  "exp_c3i_sme_supervisor",
+  "exp_c3i_teamlead",
+  "exp_c3i_pfizer_senior",
+  "exp_c3i_pfizer",
+  "exp_c3i_medidata",
+  // Competencias y formación: un CV técnico sin stack completo no pasa el filtro.
+  "skill_lenguajes",
+  "skill_datos",
+  "skill_web",
+  "skill_herramientas",
+  "edu_master_datascience",
+  "edu_daw",
+  "idiomas",
+];
+
+/**
+ * Combina la selección de la IA (orden = relevancia para el puesto) con
+ * el núcleo obligatorio. Devuelve ids sin duplicados: primero el resumen
+ * adecuado, luego lo que la IA priorizó, y después el resto del núcleo.
+ */
+export function ensureCompleteSelection(ids: string[], persona: PersonaId): string[] {
+  const valid = new Set(allCvIds());
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const push = (raw: string) => {
+    const id = raw.trim().toLowerCase();
+    if (!valid.has(id) || seen.has(id) || id === "meta_identidad") return;
+    out.push(id);
+    seen.add(id);
+  };
+
+  const defaultResumen =
+    persona === "hr" ? "resumen_hr" : persona === "fan" ? "resumen_fan" : "resumen_tech";
+  push(ids.find((i) => i.trim().toLowerCase().startsWith("resumen_")) ?? defaultResumen);
+  ids.forEach(push);
+  CV_CORE_IDS.forEach(push);
+  return out;
+}

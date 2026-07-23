@@ -162,6 +162,10 @@ interface Renderable {
   entry: CvEntry;
   section: string;
   visible: CvLine[];
+  /** posición en la selección: 0 = lo más relevante para este puesto */
+  rank: number;
+  /** condensada: solo encabezado + fechas (se preserva la trayectoria sin gastar espacio) */
+  condensed: boolean;
 }
 
 interface OptionalRef { r: Renderable; line: CvLine }
