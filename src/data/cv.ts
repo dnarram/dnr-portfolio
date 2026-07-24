@@ -138,7 +138,7 @@ Texto: David pasó 5 años trabajando en proyectos internacionales de software p
   - Resolvió escalados de Tier 1 y peticiones directas del cliente; cuando la incidencia no podía resolverse en soporte, la coordinaba con las áreas correspondientes. {p2 tech clinical}
   - Trabajó con Azure, CRM y workflows corporativos basados en SOPs; elaboró documentación técnica y reporting operativo. {p2 data tech}
   - Realizó seguimiento de KPIs y coordinación con equipos internacionales; comunicación con stakeholders. {p2 data hr}
-- Logros CUANTIFICADOS: creación de flujos de trabajo, SOPs, documentación y Objetos de Conocimiento para su gestión en una Base de Conocimiento para la fundación del soporte Tier 2 {p1 tech hr}
+- Logros: creación de flujos de trabajo, SOPs, documentación y Objetos de Conocimiento para su gestión en una Base de Conocimiento para la fundación del soporte Tier 2 {p1 tech hr}
 - Stack / herramientas usadas: Azure, CRM corporativo, Jira, Excel avanzado, workflows SOP, Knova, Horizon {p3 tech}
 - Motivo de salida: ⟨privado⟩
 
@@ -153,7 +153,7 @@ Texto: David pasó 5 años trabajando en proyectos internacionales de software p
   - Dirigió la formación y el desarrollo (training & development) de los agentes del proyecto. {p2 hr}
   - Ejecutó tareas de supervisión y aseguramiento de la calidad (QA) del servicio. {p2 hr tech}
   - Analizó métricas y SLAs; reporting y soporte a la dirección. {p2 data hr}
-- Logros CUANTIFICADOS: el equipo de agentes creció un 40%, la linea de soporte mejoró la calidad y los resultados SLA hasta mantener niveles superiores a los exigidos por el cliente, se hizo frente a la crisis provocada por la pandemia y la guerra en Ucrania sin afectar a la calidad del servicio {p1 hr data}
+- Logros: el equipo de agentes creció un 40%, la linea de soporte mejoró la calidad y los resultados SLA hasta mantener niveles superiores a los exigidos por el cliente, se hizo frente a la crisis provocada por la pandemia y la guerra en Ucrania sin afectar a la calidad del servicio {p1 hr data}
 - Stack / herramientas usadas: Azure, CRM, Jira, Excel avanzado, herramientas de reporting, Knova, Horizon {p3 tech}
 - Motivo de salida: promoción a Project Manager – Tier 2
 
@@ -168,13 +168,13 @@ Texto: David pasó 5 años trabajando en proyectos internacionales de software p
   - Encargado del entrenamiento de agentes para asistencia técnica en distintas aplicaciones de ensayos clínicos. {p2 hr}
   - Responsable de control de calidad, supervisión y revisión de los procedimientos internos. {p2 hr tech}
   - Coordinó incidencias escaladas de alto impacto con equipos internacionales. {p3 tech}
-- Logros CUANTIFICADOS: ⟨por confirmar⟩ {p2}
+- Logros: ⟨por confirmar⟩ {p2}
 - Stack / herramientas usadas: CRM, Jira, workflows corporativos {p3 tech}
 - Motivo de salida: promoción a Supervisor – SME
 
 ### [id: exp_c3i_pfizer_senior]
-- Puesto: Asistencia técnica – Pfizer – Senior
-- Empresa / organización: C3i Solutions / HCLTech — proyecto Pfizer
+- Puesto: Asistencia técnica – Agente Senior
+- Empresa / organización: C3i Solutions / HCLTech — soluciones de software de Pfizer
 - Sector: soporte IT corporativo · software para ensayos clínicos (farma)
 - Fechas: ago. 2020 – abr. 2021 (9 meses)
 - Modalidad: jornada completa · presencial — Sofía, Bulgaria
@@ -183,13 +183,13 @@ Texto: David pasó 5 años trabajando en proyectos internacionales de software p
   - Prestó soporte técnico senior a usuarios de las plataformas de Pfizer. {p3 tech clinical}
   - Registró, priorizó y resolvió incidencias con trazabilidad; documentación y reportes. {p3 tech}
   - Colaboró con equipos internacionales de QA y desarrollo. {p2 dev tech}
-- Logros CUANTIFICADOS: ⟨por confirmar⟩ {p3}
+- Logros: ⟨por confirmar⟩ {p3}
 - Stack / herramientas usadas: CRM, plataformas eClinical de Pfizer, herramientas de ticketing {p3 clinical}
 - Motivo de salida: promoción a Team Lead – Specialist
 
 ### [id: exp_c3i_pfizer]
-- Puesto: Asistencia técnica – Pfizer
-- Empresa / organización: C3i Solutions / HCLTech — proyecto Pfizer
+- Puesto: Asistencia técnica – Agente Multilingüe
+- Empresa / organización: C3i Solutions / HCLTech — soluciones de software de Pfizer
 - Sector: soporte IT corporativo · software para ensayos clínicos (farma)
 - Fechas: jun. 2019 – ago. 2020 (1 año 3 meses)
 - Modalidad: jornada completa · presencial — Sofía, Bulgaria
@@ -198,22 +198,22 @@ Texto: David pasó 5 años trabajando en proyectos internacionales de software p
   - Atendió y resolvió incidencias de usuarios de las plataformas de Pfizer (llamadas, correos y chat). {p3 tech clinical}
   - Documentó casos y generó reportes. {p3 tech}
   - Trabajó en inglés, francés y portugués con usuarios y equipos internacionales. {p3 hr}
-- Logros CUANTIFICADOS: ⟨por confirmar⟩ {p3}
+- Logros: ⟨por confirmar⟩ {p3}
 - Stack / herramientas usadas: CRM, plataformas eClinical de Pfizer {p3 clinical}
 - Motivo de salida: promoción a Asistencia técnica – Pfizer – Senior
 
 ### [id: exp_c3i_medidata]
-- Puesto: Asistencia técnica – Medidata
-- Empresa / organización: C3i Solutions / HCLTech — proyecto Medidata
+- Puesto: Asistencia técnica – Agente Multilingüe
+- Empresa / organización: C3i Solutions / HCLTech — soluciones de software de Medidata
 - Sector: soporte IT corporativo · software para ensayos clínicos (farma)
 - Fechas: ago. 2018 – jun. 2019 (11 meses)
-- Modalidad: jornada completa · presencial — Sofía, Bulgaria ⟨confirmar⟩
+- Modalidad: jornada completa · presencial — Sofía, Bulgaria
 - Descripción en 1 frase: agente de asistencia técnica de software y aplicaciones para Medidata, atendiendo a usuarios involucrados en ensayos clínicos. {p3 tech clinical}
 - Responsabilidades:
   - Atendió llamadas, correos y sesiones de chat de usuarios de las aplicaciones de Medidata (p. ej. Medidata Rave) en ensayos clínicos. {p3 clinical}
   - Registró y resolvió incidencias en varios idiomas (inglés, francés, portugués). {p3 hr}
   - Documentó casos y colaboró con equipos globales. {p3 tech}
-- Logros CUANTIFICADOS: ⟨por confirmar⟩ {p3}
+- Logros: ⟨por confirmar⟩ {p3}
 - Stack / herramientas usadas: CRM, Medidata Rave, herramientas de ticketing {p3 clinical}
 - Motivo de salida: continuidad en la cuenta Pfizer (progresión interna)
 
@@ -339,7 +339,7 @@ Texto: David es un apasionado de la tecnología y los datos, especializado en te
 - Disponibilidad de incorporación: inmediata {p2 hr}
 - Modalidad preferida: remoto, híbrido, presencial y relocalización {p2 hr}
 - Expectativa salarial (normalmente NO en el CV): La expectativa salarial depende de las condiciones laborales, requisitos, localización y posición. Es mejor que sea tratado directamente con David.
-- Disponibilidad para viajar / relocalización: sí, disponible para viajar y relocalización {p3 hr}
+- Disponibilidad para viajar / relocalización: disponible para viajar y relocalización {p3 hr}
 
 ---
 
