@@ -156,6 +156,24 @@ function isFlatBlock(id: string): boolean {
   );
 }
 
+/* Orden de SECCIONES según el visitante/rol. Lo que va arriba es lo que
+   el lector escanea en los primeros 10 segundos, así que cada perfil pone
+   delante su evidencia más convincente:
+   - tech (recruiter técnico): stack primero (filtra por keywords), luego
+     los proyectos que lo demuestran;
+   - dev (hiring manager técnico): el código primero — proyectos y luego
+     stack;
+   - hr (RR. HH. / negocio): trayectoria y formación primero;
+   - fan (curioso): proyectos y divulgación.
+   Las secciones "administrativas" (objetivo, disponibilidad, extras)
+   siempre al final. */
+const SECTION_ORDER: Record<PersonaId, string[]> = {
+  tech: ["Perfil", "Competencias", "Proyectos", "Experiencia profesional", "Formación", "Certificaciones", "Idiomas", "Objetivo profesional", "Disponibilidad", "Información adicional"],
+  dev: ["Perfil", "Proyectos", "Competencias", "Experiencia profesional", "Formación", "Certificaciones", "Idiomas", "Objetivo profesional", "Disponibilidad", "Información adicional"],
+  hr: ["Perfil", "Experiencia profesional", "Formación", "Competencias", "Proyectos", "Idiomas", "Certificaciones", "Objetivo profesional", "Disponibilidad", "Información adicional"],
+  fan: ["Perfil", "Proyectos", "Competencias", "Idiomas", "Formación", "Experiencia profesional", "Certificaciones", "Objetivo profesional", "Disponibilidad", "Información adicional"],
+};
+
 /* ── Motor de selección jerárquica ─────────────────────────────── */
 
 interface Renderable {
@@ -231,6 +249,9 @@ export function assembleCv(blocks: CvBlock[], persona: PersonaId): Renderable[] 
 
   const included: OptionalRef[] = [];
   for (const o of optionals) {
+    // Evita duplicados: una línea puede haber entrado ya como "línea mínima"
+    // garantizada de un bloque plano. Repetirla sería un error visible.
+    if (o.r.visible.includes(o.line)) continue;
     const cost = lineUnits(o.line);
     if (units + cost > BUDGET) continue;
     o.r.visible.push(o.line);
@@ -320,13 +341,30 @@ export async function buildCvPdf(
       if (flat) return r.visible.length > 0;
       return Boolean(r.entry.heading) || r.visible.length > 0;
     };
-    const sections: Array<{ name: string; items: Renderable[] }> = [];
+    // Agrupación GLOBAL: todas las entradas de una misma sección van juntas
+    // aunque su relevancia las separe. Un CV nunca puede tener dos bloques
+    // "COMPETENCIAS" partidos por otra sección (#1).
+    const bySection = new Map<string, Renderable[]>();
     for (const r of rs) {
       if (!hasContent(r)) continue;
-      const last = sections[sections.length - 1];
-      if (last && last.name === r.section) last.items.push(r);
-      else sections.push({ name: r.section, items: [r] });
+      const arr = bySection.get(r.section);
+      if (arr) arr.push(r);
+      else bySection.set(r.section, [r]);
     }
+    // El ORDEN de las secciones lo marca el perfil del visitante (#3); dentro
+    // de cada sección se conserva el orden de relevancia para el puesto.
+    const order = SECTION_ORDER[persona] ?? SECTION_ORDER.tech;
+    const sections = Array.from(bySection.entries())
+      .map(([name, items]) => {
+        const idx = order.indexOf(name);
+        return { name, items, ord: idx === -1 ? 900 : idx };
+      })
+      .sort(
+        (a, b) =>
+          a.ord - b.ord ||
+          Math.min(...a.items.map((i) => i.rank)) - Math.min(...b.items.map((i) => i.rank)),
+      )
+      .map(({ name, items }) => ({ name, items }));
 
     return (
       <Document title="CV — David Naranjo Ramírez" author="David Naranjo Ramírez">
