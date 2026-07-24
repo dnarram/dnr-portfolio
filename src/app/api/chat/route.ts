@@ -180,11 +180,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Cadena de proveedores de IA con fallback (orden: Groq → OpenRouter →
-  // Anthropic). Un proveedor entra en la cadena solo si su key está
-  // configurada. Si toda la cadena falla, el chat degrada a modo FAQ.
+  // El concierge arranca SIEMPRE en modo IA si hay algún proveedor
+  // configurado. Solo cae a FAQ cuando: se fuerza con CHAT_MODE=faq, no hay
+  // ninguna key, se agota el presupuesto diario, o toda la cadena falla.
   const llmEnabled =
-    process.env.CHAT_MODE === "llm" &&
+    process.env.CHAT_MODE !== "faq" &&
     !overDailyBudget() &&
     Boolean(process.env.GROQ_API_KEY || process.env.OPENROUTER_API_KEY || process.env.ANTHROPIC_API_KEY);
 

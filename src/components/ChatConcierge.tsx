@@ -218,7 +218,7 @@ export default function ChatConcierge({
         </div>
       )}
       <div className="mode-note">
-        {mode === "llm"
+        {mode !== "faq"
           ? "modo: ia — las preguntas se procesan con un proveedor externo; no incluyas datos personales"
           : "modo: faq — respuestas locales de una base verificada; no incluyas datos personales"}
       </div>
