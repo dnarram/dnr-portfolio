@@ -818,3 +818,24 @@ h1, h2, h3, h4 { color: var(--heading); }
   .v2-timeline li { grid-template-columns: 1fr; }
   .v2-tl-donde { grid-column: 1; }
 }
+
+/* ══════════════ Selector de idioma (Fase 2) ══════════════ */
+/* Pega este bloque al final de src/app/globals.css, ANTES del bloque
+   del Playground SQL (si ya lo tienes). Si aún no tienes el CSS v2 base
+   (.v2-header, .v2-tabs, etc.), avísame: eso va aparte. */
+
+.v2-header-right { display: flex; align-items: center; gap: 14px; }
+
+.v2-lang { display: flex; gap: 2px; border: 1px solid var(--border, #e2e8f0); border-radius: 999px; padding: 2px; }
+.v2-lang-btn {
+  font-family: var(--font-mono); font-size: 11.5px; font-weight: 600;
+  padding: 4px 9px; border-radius: 999px; border: none; background: transparent;
+  color: var(--text-2); cursor: pointer; line-height: 1;
+}
+.v2-lang-btn.active { background: var(--accent); color: var(--cta-text); }
+.v2-lang-btn:hover:not(.active) { color: var(--accent); }
+
+@media (max-width: 760px) {
+  .v2-header-right { gap: 8px; }
+  .v2-lang-btn { padding: 4px 7px; }
+}
