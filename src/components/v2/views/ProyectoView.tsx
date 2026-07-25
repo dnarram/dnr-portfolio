@@ -4,6 +4,7 @@ import Link from "next/link";
 import HeaderV2 from "@/components/v2/HeaderV2";
 import FloatingConcierge from "@/components/v2/FloatingConcierge";
 import SqlPlayground from "@/components/v2/SqlPlayground";
+import EdaStorytelling from "@/components/v2/EdaStorytelling";
 import { useLang } from "@/components/v2/LangProvider";
 import { L } from "@/data/i18n";
 import type { Proyecto } from "@/data/proyectos";
@@ -28,6 +29,7 @@ export default function ProyectoView({ p }: { p: Proyecto }) {
         </section>
 
         {p.slug === "olist-data-warehouse" && <SqlPlayground lang={lang} />}
+        {p.slug === "eda-fatal-force" && <EdaStorytelling lang={lang} />}
 
         <section className="v2-sec">
           <h2>{ui.project.architecture}</h2>
