@@ -125,6 +125,7 @@ const UI = {
     loading: "Cargando el motor SQL…",
     rows: "filas",
     error: "Error",
+    hint: "▶ Pulsa «Ejecutar» para lanzar la consulta.",
     schemaNote:
       "Esquema en estrella: fact_sales (hechos) + dim_customer, dim_product, dim_seller, dim_payment, dim_date.",
   },
@@ -137,6 +138,7 @@ const UI = {
     loading: "Loading the SQL engine…",
     rows: "rows",
     error: "Error",
+    hint: "▶ Press “Run” to execute the query.",
     schemaNote:
       "Star schema: fact_sales (facts) + dim_customer, dim_product, dim_seller, dim_payment, dim_date.",
   },
@@ -174,8 +176,8 @@ export default function SqlPlayground({ lang }: { lang: Lang }) {
         const database = new SQL.Database();
         database.exec(seed);
         setDb(database);
-        // Ejecuta el primer ejemplo automáticamente para que se vea algo al entrar.
-        setResult(database.exec(EXAMPLES[0].sql)[0] ?? null);
+        // No ejecutamos nada al cargar: la tabla debe aparecer SOLO cuando el
+        // visitante pulsa "Ejecutar", para que el botón tenga un efecto visible.
       } catch (e) {
         setLoadError(e instanceof Error ? e.message : String(e));
       } finally {
@@ -200,15 +202,11 @@ export default function SqlPlayground({ lang }: { lang: Lang }) {
   };
 
   const loadExample = (ex: Example) => {
+    // Solo carga el SQL en el editor y limpia resultados previos: el visitante
+    // pulsa "Ejecutar" para verlo correr. Así el botón siempre "hace algo".
     setSql(ex.sql);
     setRunError(null);
-    if (db) {
-      try {
-        setResult(db.exec(ex.sql)[0] ?? null);
-      } catch {
-        /* ignore */
-      }
-    }
+    setResult(null);
   };
 
   return (
@@ -246,6 +244,10 @@ export default function SqlPlayground({ lang }: { lang: Lang }) {
 
       {loadError && <p className="sqlpg-error">{t.error}: {loadError}</p>}
       {runError && <p className="sqlpg-error">{t.error}: {runError}</p>}
+
+      {!result && !runError && !loadError && !loading && (
+        <p className="sqlpg-hint">{t.hint}</p>
+      )}
 
       {result && result.columns.length > 0 && (
         <div className="sqlpg-table-wrap">
