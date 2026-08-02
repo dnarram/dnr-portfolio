@@ -1,4 +1,5 @@
 import { LangProvider } from "@/components/v2/LangProvider";
+import { VistaProvider } from "@/components/v2/VistaProvider";
 import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/inter";
 import "@fontsource-variable/jetbrains-mono";
@@ -72,7 +73,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(personLd) }} />
-        <LangProvider>{children}</LangProvider>
+        <LangProvider>
+          <VistaProvider>{children}</VistaProvider>
+        </LangProvider>
         {/* Analítica sin cookies (RGPD-friendly, sin banner de consentimiento). Solo se carga si está configurada. */}
         {goatcounter ? (
           <script async data-goatcounter={`https://${goatcounter}.goatcounter.com/count`} src="https://gc.zgo.at/count.js" />

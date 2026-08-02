@@ -2,34 +2,42 @@
 
 import { useState } from "react";
 import ChatConcierge from "@/components/ChatConcierge";
-import { PERSONAS, type PersonaId } from "@/data/personas";
+import { PERSONAS } from "@/data/personas";
+import { useVista } from "@/components/v2/VistaProvider";
+import { VISTA_IDS, VISTA_LABELS, vistaToPersona, type VistaId } from "@/data/vistas";
+import { useLang } from "@/components/v2/LangProvider";
 
 /**
  * Concierge flotante (v2): burbuja fija abajo a la derecha que abre el
  * chat como popup. Reutiliza el ChatConcierge completo (IA + FAQ + CV).
- * El visitante puede indicar su perfil con un chip para que las
- * respuestas y el CV se adapten; por defecto, perfil técnico.
+ *
+ * Fase 4: los chips escriben en el MISMO estado de vista que reordena la
+ * página. Una sola fuente de verdad para navegación, contenido y CV:
+ * si el visitante se identifica aquí, el portfolio entero se adapta detrás;
+ * si llegó con ?v=hr, el chat ya arranca con esa persona.
  */
 export default function FloatingConcierge() {
   const [open, setOpen] = useState(false);
-  const [personaId, setPersonaId] = useState<PersonaId>("tech");
+  const { vista, setVista } = useVista();
+  const { lang } = useLang();
+  const persona = PERSONAS[vistaToPersona(vista)];
 
   return (
     <>
       {open && (
         <div className="v2-chat-panel" role="dialog" aria-label="Asistente del portfolio">
           <div className="v2-chat-chips" aria-label="¿Quién eres?">
-            {(Object.keys(PERSONAS) as PersonaId[]).map((id) => (
+            {VISTA_IDS.map((v: VistaId) => (
               <button
-                key={id}
-                className={"v2-chip" + (personaId === id ? " active" : "")}
-                onClick={() => setPersonaId(id)}
+                key={v}
+                className={"v2-chip" + (vista === v ? " active" : "")}
+                onClick={() => setVista(v)}
               >
-                {PERSONAS[id].chip}
+                {VISTA_LABELS[v][lang]}
               </button>
             ))}
           </div>
-          <ChatConcierge persona={PERSONAS[personaId]} onClose={() => setOpen(false)} />
+          <ChatConcierge persona={persona} onClose={() => setOpen(false)} />
         </div>
       )}
       <button
