@@ -16,6 +16,10 @@ export interface Proyecto {
   retos: Array<{ titulo: Localized; texto: Localized }>;
   decisiones: Array<{ titulo: Localized; texto: Localized }>;
   estado: "publico" | "pendiente" | "privado";
+  /** año o periodo, para dar contexto temporal en la tarjeta */
+  anio?: string;
+  /** cifras de escala: lo que hace memorable el proyecto de un vistazo */
+  metricas?: Array<{ valor: string; etiqueta: Localized }>;
   repo?: string;
   demo?: string;
   articulo?: Localized;
@@ -26,6 +30,12 @@ export const PROYECTOS: Proyecto[] = [
   {
     slug: "eda-fatal-force",
     titulo: "EDAFatalForce",
+    anio: "2026",
+    metricas: [
+      { valor: "10.430", etiqueta: { es: "incidentes analizados", en: "incidents analysed" } },
+      { valor: "19→68", etiqueta: { es: "columnas tras el pipeline", en: "columns after the pipeline" } },
+      { valor: "10", etiqueta: { es: "preguntas de investigación", en: "research questions" } },
+    ],
     tagline: {
       es: "10 años de datos de fuerza letal policial en EE. UU., corregidos y contados",
       en: "10 years of US police use-of-force data, corrected and told",
@@ -85,6 +95,12 @@ export const PROYECTOS: Proyecto[] = [
   {
     slug: "olist-data-warehouse",
     titulo: "Data Warehouse Olist",
+    anio: "2026",
+    metricas: [
+      { valor: "98.665", etiqueta: { es: "pedidos modelados", en: "orders modelled" } },
+      { valor: "5+1", etiqueta: { es: "dimensiones y tabla de hechos", en: "dimensions and fact table" } },
+      { valor: "12", etiqueta: { es: "preguntas de negocio resueltas", en: "business questions answered" } },
+    ],
     tagline: {
       es: "Un esquema en estrella auditado sobre 100.000+ pedidos de e-commerce",
       en: "An audited star schema over 100,000+ e-commerce orders",
@@ -144,6 +160,11 @@ export const PROYECTOS: Proyecto[] = [
   {
     slug: "rondaguide",
     titulo: "RondaGuide",
+    anio: "2026",
+    metricas: [
+      { valor: "2", etiqueta: { es: "servidores tras un proxy NGINX", en: "servers behind an NGINX proxy" } },
+      { valor: "6", etiqueta: { es: "tecnologías integradas", en: "technologies integrated" } },
+    ],
     tagline: {
       es: "Guía turística interactiva de Ronda con arquitectura de doble servidor",
       en: "Interactive tourist guide of Ronda with a dual-server architecture",
@@ -184,6 +205,12 @@ export const PROYECTOS: Proyecto[] = [
   {
     slug: "portfolio-adaptativo",
     titulo: "Portfolio Adaptativo DNR",
+    anio: "2026",
+    metricas: [
+      { valor: "4", etiqueta: { es: "vistas según el visitante", en: "visitor-adaptive views" } },
+      { valor: "3", etiqueta: { es: "proveedores de IA en cadena", en: "chained AI providers" } },
+      { valor: "2", etiqueta: { es: "idiomas con paridad total", en: "languages at full parity" } },
+    ],
     tagline: {
       es: "Este mismo sitio: contenido que se adapta a quien lo visita, con IA integrada",
       en: "This very site: content that adapts to each visitor, with built-in AI",
