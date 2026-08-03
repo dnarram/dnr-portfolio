@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useLang } from "@/components/v2/LangProvider";
 import { LANGS } from "@/data/i18n";
 import { useVista } from "@/components/v2/VistaProvider";
+import ThemeToggle from "@/components/v2/ThemeToggle";
 import { VISTA_IDS, VISTA_LABELS, VISTA_HINT, type VistaId } from "@/data/vistas";
 
 export default function HeaderV2() {
@@ -63,6 +64,7 @@ export default function HeaderV2() {
             </button>
           ))}
         </div>
+        <ThemeToggle />
       </div>
     </header>
   );

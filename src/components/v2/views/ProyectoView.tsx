@@ -5,6 +5,7 @@ import HeaderV2 from "@/components/v2/HeaderV2";
 import FloatingConcierge from "@/components/v2/FloatingConcierge";
 import SqlPlayground from "@/components/v2/SqlPlayground";
 import EdaStorytelling from "@/components/v2/EdaStorytelling";
+import Publicaciones from "@/components/v2/Publicaciones";
 import { useLang } from "@/components/v2/LangProvider";
 import { useVista } from "@/components/v2/VistaProvider";
 import { SECTION_ORDER, type SectionKey } from "@/data/vistas";
@@ -86,11 +87,8 @@ export default function ProyectoView({ p }: { p: Proyecto }) {
             </p>
           </div>
         )}
-        {p.articulo && (
-          <p className="v2-note">
-            {ui.project.relatedArticle} {L(p.articulo, lang)}
-          </p>
-        )}
+        {/* Publicaciones reales sobre este proyecto (enlaces, no texto plano) */}
+        <Publicaciones proyecto={p.slug} />
       </section>
     ),
   };
